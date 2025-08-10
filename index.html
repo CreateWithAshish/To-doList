@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Simple To‑Do App</title>
+  <meta name="description" content="A single-file to-do app using HTML, CSS and JavaScript with localStorage persistence." />
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --muted:#9aa4b2;
+      --accent:#7c3aed; /* violet */
+      --success:#16a34a;
+      --danger:#ef4444;
+      --glass: rgba(255,255,255,0.03);
+      --radius:14px;
+      --fw-regular: 400;
+      --fw-bold: 700;
+      --max-width:760px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.08), transparent),
+                  linear-gradient(180deg, rgba(255,255,255,0.02), transparent 40%),
+                  var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      color:#e6eef6;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:40px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .container{
+      width:100%;
+      max-width:var(--max-width);
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), var(--glass));
+      border-radius:var(--radius);
+      padding:28px;
+      box-shadow: 0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      backdrop-filter: blur(6px);
+    }
+
+    header{
+      display:flex;
+      gap:16px;
+      align-items:center;
+      margin-bottom:18px;
+    }
+
+    .logo{
+      width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#60a5fa);
+      display:flex;align-items:center;justify-content:center;font-weight:700;color:white;font-size:20px;box-shadow:0 6px 18px rgba(124,58,237,0.18);
+    }
+
+    h1{margin:0;font-size:20px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+
+    form.add-form{
+      display:flex;gap:10px;margin-top:16px;
+    }
+    .input-wrap{flex:1;display:flex;align-items:center;background:rgba(255,255,255,0.02);padding:8px 12px;border-radius:10px}
+    input[type='text']{
+      background:transparent;border:0;outline:0;color:inherit;font-size:15px;padding:8px;width:100%
+    }
+    .btn{
+      background:var(--accent);border:0;color:white;padding:10px 14px;border-radius:10px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(124,58,237,0.14)
+    }
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);box-shadow:none}
+
+    main{
+      margin-top:20px;
+      display:grid;grid-template-columns:1fr 240px;gap:18px;
+    }
+
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+      border-radius:12px;padding:14px;
+      box-shadow: 0 6px 18px rgba(2,6,23,0.4);
+    }
+
+    #todo-list{min-height:180px}
+
+    .todo-item{
+      display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;margin-bottom:8px;background:rgba(255,255,255,0.01);
+      transition:transform .12s ease, background .12s ease, opacity .12s ease
+    }
+    .todo-item:hover{transform:translateY(-2px)}
+    .todo-item.completed{opacity:0.6}
+
+    .checkbox{
+      width:18px;height:18px;border-radius:6px;border:1.6px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0
+    }
+    .checkbox.checked{background:linear-gradient(135deg,var(--accent),#4f46e5);border:0}
+    .checkbox svg{width:12px;height:12px;display:block}
+
+    .title{flex:1;word-break:break-word}
+    .title .text{font-size:15px}
+    .meta{font-size:12px;color:var(--muted);margin-top:4px}
+
+    .actions{display:flex;gap:8px}
+    .icon-btn{background:transparent;border:0;color:var(--muted);padding:6px;border-radius:8px;cursor:pointer}
+    .icon-btn:hover{color:white;background:rgba(255,255,255,0.02)}
+
+    .filters{display:flex;flex-direction:column;gap:12px}
+    .filters .group{display:flex;gap:8px;flex-wrap:wrap}
+
+    .small{font-size:13px;color:var(--muted)}
+
+    footer.card{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+
+    /* responsive */
+    @media (max-width:860px){
+      main{grid-template-columns:1fr}
+      .container{padding:18px}
+    }
+
+    /* tiny helper styles */
+    .muted{color:var(--muted)}
+    .danger{color:var(--danger)}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+  </style>
+</head>
+<body>
+  <div class="container" role="application" aria-labelledby="app-title">
+    <header>
+      <div class="logo" aria-hidden>TD</div>
+      <div>
+        <h1 id="app-title">Simple To‑Do</h1>
+        <p class="lead">Fast, tiny and stores data in your browser.</p>
+      </div>
+    </header>
+
+    <form id="addForm" class="add-form" aria-label="Add new to-do">
+      <div class="input-wrap">
+        <input id="newTodo" type="text" name="todo" placeholder="Add a new task (e.g. 'Buy milk')" autocomplete="off" required maxlength="200" />
+      </div>
+      <button class="btn" type="submit">Add</button>
+    </form>
+
+    <main>
+      <section class="card" aria-label="To-do list">
+        <div id="todo-list" aria-live="polite">
+          <!-- items inserted here -->
+        </div>
+
+        <footer class="card" aria-hidden>
+          <div class="small" id="itemsCount">0 items</div>
+          <div style="display:flex;gap:8px">
+            <button id="clearCompleted" class="icon-btn ghost" title="Clear completed">Clear completed</button>
+            <button id="clearAll" class="icon-btn" title="Clear all">Clear all</button>
+          </div>
+        </footer>
+      </section>
+
+      <aside class="card filters" aria-label="Controls">
+        <div>
+          <div class="small">Filter</div>
+          <div class="group" role="radiogroup" aria-label="Filter tasks">
+            <label><input type="radio" name="filter" value="all" checked /> All</label>
+            <label><input type="radio" name="filter" value="active" /> Active</label>
+            <label><input type="radio" name="filter" value="completed" /> Completed</label>
+          </div>
+        </div>
+
+        <div>
+          <div class="small">Sort</div>
+          <div class="group">
+            <label><input type="radio" name="sort" value="created-desc" checked /> Newest</label>
+            <label><input type="radio" name="sort" value="created-asc" /> Oldest</label>
+            <label><input type="radio" name="sort" value="alpha" /> A → Z</label>
+          </div>
+        </div>
+
+        <div>
+          <div class="small">Settings</div>
+          <div class="group">
+            <label><input type="checkbox" id="confirmDelete" checked /> Confirm deletes</label>
+            <label><input type="checkbox" id="autoFocus" /> Autofocus input after add</label>
+          </div>
+        </div>
+
+        <div>
+          <div class="small">About</div>
+          <div class="muted" style="font-size:13px">Local-only. No accounts. Open-source single file.</div>
+        </div>
+      </aside>
+    </main>
+
+  </div>
+
+  <script>
+    // Simple To-Do App
+    // Features: add, edit, toggle complete, delete, filter, sort, localStorage
+    // Data model: [{id, text, completed, createdAt}]
+
+    (function(){
+      // ---------- helpers ----------
+      const $ = (sel, root=document) => root.querySelector(sel);
+      const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+      const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+
+      // ---------- elements ----------
+      const form = $('#addForm');
+      const input = $('#newTodo');
+      const listWrap = $('#todo-list');
+      const itemsCount = $('#itemsCount');
+      const clearCompletedBtn = $('#clearCompleted');
+      const clearAllBtn = $('#clearAll');
+
+      // controls
+      const filterRadios = $$('input[name="filter"]');
+      const sortRadios = $$('input[name="sort"]');
+      const confirmDeleteCheckbox = $('#confirmDelete');
+      const autoFocusCheckbox = $('#autoFocus');
+
+      // ---------- state ----------
+      let todos = [];
+      let filter = 'all';
+      let sort = 'created-desc';
+
+      const LS_KEY = 'simple_todo_v1';
+
+      // ---------- storage ----------
+      function load(){
+        try{
+          const raw = localStorage.getItem(LS_KEY);
+          if(!raw) return [];
+          const parsed = JSON.parse(raw);
+          if(!Array.isArray(parsed)) return [];
+          return parsed.map(t => ({...t, createdAt: new Date(t.createdAt)}));
+        }catch(e){ console.warn('load failed', e); return [] }
+      }
+      function save(){
+        const copy = todos.map(t => ({...t, createdAt: t.createdAt.toISOString()}));
+        localStorage.setItem(LS_KEY, JSON.stringify(copy));
+      }
+
+      // ---------- rendering ----------
+      function render(){
+        // apply filter
+        let out = todos.slice();
+        if(filter === 'active') out = out.filter(t => !t.completed);
+        if(filter === 'completed') out = out.filter(t => t.completed);
+
+        // apply sort
+        if(sort === 'created-desc') out.sort((a,b) => b.createdAt - a.createdAt);
+        if(sort === 'created-asc') out.sort((a,b) => a.createdAt - b.createdAt);
+        if(sort === 'alpha') out.sort((a,b) => a.text.localeCompare(b.text));
+
+        // render
+        listWrap.innerHTML = '';
+        if(out.length === 0){
+          const empty = document.createElement('div');
+          empty.className = 'muted';
+          empty.style.padding = '24px';
+          empty.textContent = 'No tasks — add your first task above.';
+          listWrap.appendChild(empty);
+        }else{
+          out.forEach(task => listWrap.appendChild(renderItem(task)));
+        }
+
+        // update count
+        const remaining = todos.filter(t => !t.completed).length;
+        itemsCount.textContent = remaining + (remaining===1? ' item' : ' items') + ' left';
+      }
+
+      function renderItem(task){
+        const root = document.createElement('div');
+        root.className = 'todo-item' + (task.completed ? ' completed' : '');
+        root.dataset.id = task.id;
+
+        // checkbox
+        const cb = document.createElement('button');
+        cb.className = 'checkbox' + (task.completed ? ' checked' : '');
+        cb.setAttribute('aria-pressed', task.completed);
+        cb.setAttribute('title', task.completed ? 'Mark as active' : 'Mark as completed');
+        cb.innerHTML = task.completed ? checkSVG() : '';
+        cb.addEventListener('click', () => toggleComplete(task.id));
+
+        // title + meta
+        const title = document.createElement('div');
+        title.className = 'title';
+        const ttext = document.createElement('div');
+        ttext.className = 'text';
+        ttext.textContent = task.text;
+        ttext.setAttribute('tabindex', '0');
+        ttext.title = task.text;
+        if(task.completed) ttext.style.textDecoration = 'line-through';
+
+        const meta = document.createElement('div');
+        meta.className = 'meta muted';
+        meta.textContent = 'Added ' + formatDate(task.createdAt);
+
+        title.appendChild(ttext);
+        title.appendChild(meta);
+
+        // actions
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.className = 'icon-btn';
+        editBtn.title = 'Edit';
+        editBtn.innerHTML = pencilSVG();
+        editBtn.addEventListener('click', ()=> startEdit(task.id, ttext));
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'icon-btn';
+        delBtn.title = 'Delete';
+        delBtn.innerHTML = trashSVG();
+        delBtn.addEventListener('click', ()=> deleteItem(task.id));
+
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+
+        root.appendChild(cb);
+        root.appendChild(title);
+        root.appendChild(actions);
+
+        return root;
+      }
+
+      // ---------- actions ----------
+      function addTodo(text){
+        const t = text.trim();
+        if(!t) return;
+        const newItem = {id: uid(), text: t, completed:false, createdAt:new Date()};
+        todos.push(newItem);
+        save();
+        render();
+        if(autoFocusCheckbox.checked) input.focus();
+      }
+
+      function toggleComplete(id){
+        const idx = todos.findIndex(t=>t.id===id);
+        if(idx===-1) return;
+        todos[idx].completed = !todos[idx].completed;
+        save();render();
+      }
+
+      function deleteItem(id){
+        const idx = todos.findIndex(t=>t.id===id);
+        if(idx===-1) return;
+        if(confirmDeleteCheckbox.checked){
+          if(!confirm('Delete this task?')) return;
+        }
+        todos.splice(idx,1);
+        save();render();
+      }
+
+      function clearCompleted(){
+        const before = todos.length;
+        todos = todos.filter(t => !t.completed);
+        if(todos.length === before) return; // nothing
+        save();render();
+      }
+      function clearAll(){
+        if(confirmDeleteCheckbox.checked){
+          if(!confirm('Clear ALL tasks?')) return;
+        }
+        todos = [];
+        save();render();
+      }
+
+      // edit flow: replace text element with input
+      function startEdit(id, textNode){
+        const item = todos.find(t=>t.id===id);
+        if(!item) return;
+        const parent = textNode.parentElement;
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.value = item.text;
+        inp.maxLength = 200;
+        inp.style.width = '100%';
+        inp.style.fontSize = '15px';
+        inp.style.padding = '6px 8px';
+        parent.replaceChild(inp, textNode);
+        inp.focus();
+
+        function commit(){
+          const val = inp.value.trim();
+          if(!val){
+            // empty -> delete
+            deleteItem(id);
+            return;
+          }
+          item.text = val;
+          save(); render();
+        }
+        function cancel(){ render(); }
+
+        inp.addEventListener('blur', commit, {once:true});
+        inp.addEventListener('keydown', (e)=>{
+          if(e.key === 'Enter') inp.blur();
+          if(e.key === 'Escape') cancel();
+        });
+      }
+
+      // ---------- utilities ----------
+      function formatDate(d){
+        if(!(d instanceof Date)) d = new Date(d);
+        const now = new Date();
+        const delta = Math.round((now - d) / 1000);
+        if(delta < 60) return 'just now';
+        if(delta < 3600) return Math.floor(delta/60) + 'm ago';
+        if(delta < 86400) return Math.floor(delta/3600) + 'h ago';
+        return d.toLocaleString();
+      }
+
+      function checkSVG(){
+        return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      }
+      function pencilSVG(){
+        return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 21l3-1 11-11 1-3-4-0-11 11-0 4z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      }
+      function trashSVG(){
+        return '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M8 6v12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M16 6v12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M5 6l1-3h12l1 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      }
+
+      // ---------- events ----------
+      form.addEventListener('submit', (e)=>{
+        e.preventDefault();
+        addTodo(input.value);
+        form.reset();
+      });
+
+      // delegation for keyboard support (Enter on focused task text to edit)
+      listWrap.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter' && e.target.classList.contains('text')){
+          const id = e.target.closest('.todo-item').dataset.id;
+          startEdit(id, e.target);
+        }
+      });
+
+      clearCompletedBtn.addEventListener('click', clearCompleted);
+      clearAllBtn.addEventListener('click', clearAll);
+
+      filterRadios.forEach(r=> r.addEventListener('change', ()=>{ filter = r.value; render(); }));
+      sortRadios.forEach(r=> r.addEventListener('change', ()=>{ sort = r.value; render(); }));
+
+      // load initial
+      function init(){
+        todos = load();
+        render();
+      }
+      init();
+
+      // expose for debugging (optional)
+      window._todoApp = {
+        get todos(){return todos},
+        add(text){ addTodo(text) },
+        clearAll(){ clearAll() },
+      };
+
+    })();
+  </script>
+</body>
+</html>
