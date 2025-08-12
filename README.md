@@ -2,7 +2,7 @@
 
 A fast, lightweight, and offline-first to-do list web app that stores your tasks directly in the browser — no server, no accounts, just your tasks.
 
-![Website Demo Image](https://github.com/CreateWithAshish/To-doList/commit/0ddcd4984f709dfddcd87c63f27bacb09e2d1009#diff-220c734678d21b3dbc64674f5a55033fda87b01008602b379063774183d056b8)
+![Website Demo Image](To-do DEMO website.png)
 
 ---
 
