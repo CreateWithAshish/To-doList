@@ -2,7 +2,7 @@
 
 A fast, lightweight, and offline-first to-do list web app that stores your tasks directly in the browser — no server, no accounts, just your tasks.
 
-![To-Do App Screenshot](screenshot.png)
+![To-Do App Screenshot](To-do DEMO website.png)
 
 ---
 
